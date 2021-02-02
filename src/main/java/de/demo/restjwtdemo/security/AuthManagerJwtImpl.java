@@ -8,7 +8,7 @@ class AuthManagerJwtImpl implements AuthManagerIF {
 
     // check user credentials for validity and return true if they are valid and false if not
     @Override
-    public boolean checkCredentialsValid(LoginCredentials creds) {
+    public boolean checkCredentialsValid(final LoginCredentials creds) {
         return false;
     }
 }

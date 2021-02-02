@@ -19,18 +19,18 @@ public class AuthController {
     private TokenUtilIF tokenUtil;
 
     @Autowired
-    public void setAuthManager(AuthManagerIF authManager) {
+    public void setAuthManager(final AuthManagerIF authManager) {
         this.authManager = authManager;
     }
 
     @Autowired
-    public void setTokenUtil(TokenUtilIF tokenUtil) {
+    public void setTokenUtil(final TokenUtilIF tokenUtil) {
         this.tokenUtil = tokenUtil;
     }
 
     // process new authenticate request
     @PostMapping(value = "/login")
-    public ResponseEntity<?> login(@RequestBody LoginCredentials userCredentials, HttpServletResponse response)
+    public ResponseEntity<?> login(@RequestBody final LoginCredentials userCredentials, final HttpServletResponse response)
             throws Exception {
         if (authManager.checkCredentialsValid(userCredentials)) {
             // return new token
