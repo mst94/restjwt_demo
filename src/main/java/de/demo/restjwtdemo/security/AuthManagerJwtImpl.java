@@ -3,6 +3,7 @@ package de.demo.restjwtdemo.security;
 import de.demo.restjwtdemo.model.LoginCredentials;
 import org.springframework.stereotype.Component;
 
+// jwt implementation of the auth manager
 @Component
 class AuthManagerJwtImpl implements AuthManagerIF {
 

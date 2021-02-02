@@ -8,6 +8,7 @@ import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
@@ -25,7 +26,7 @@ class TokenUtilJwtImpl implements TokenUtilIF {
 
 
     @Override
-    public Token generateToken(final UserData userData) {
+    public Token generateToken(final UserDetails userDetails) {
         long currentTimeMs = System.currentTimeMillis();
         long expDate = currentTimeMs + jwtValidityDuration;
 
@@ -44,12 +45,8 @@ class TokenUtilJwtImpl implements TokenUtilIF {
         return new JwtToken(jwt);
     }
 
-    private String extractUsername() {
-        return
-    }
-
     @Override
-    public boolean checkTokenIsValid(final JwtToken token) {
+    public boolean validateToken(final JwtToken token) {
         // steps: check token signature is not broken, check token is not expired
         Jws<Claims> jws;
 
@@ -63,12 +60,7 @@ class TokenUtilJwtImpl implements TokenUtilIF {
         }
     }
 
-    private Claims getClaimFromToken(String token, Function<Claims, T> claimsResolver) {
-        final Claims claims = getAllClaimsFromToken(token);
-        return claimsResolver.apply(claims);
-    }
-
-    private Claims getAllClaimsFromToken(String token) {
+    public Claims getAllClaimsFromToken(String token) {
         return Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
     }
 
