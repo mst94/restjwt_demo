@@ -11,7 +11,7 @@ import java.io.IOException;
 
 // this class handles what happens in case of an auth exception
 @Component
-public class AuthEntryPoint implements AuthenticationEntryPoint {
+public class AuthEntryPointImpl implements AuthenticationEntryPoint {
     @Override
     public void commence(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse,
                          AuthenticationException e) throws IOException, ServletException {

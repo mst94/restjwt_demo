@@ -1,9 +1,10 @@
 package de.demo.restjwtdemo.security;
 
-import de.demo.restjwtdemo.model.JwtToken;
+import de.demo.restjwtdemo.model.Token;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -19,6 +20,9 @@ public class RequestFilter extends OncePerRequestFilter {
     @Autowired
     private TokenUtilIF tokenUtil;
 
+    @Autowired
+    private UserDetailsServiceImpl userDetailsService;
+
     @Override
     protected void doFilterInternal(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse,
                                     FilterChain filterChain) throws ServletException, IOException {
@@ -32,7 +36,9 @@ public class RequestFilter extends OncePerRequestFilter {
         if (!requestTokenHeader.startsWith("Basic"))
             return;
 
-        final JwtToken tokenToCheck = new JwtToken(requestTokenHeader.substring(6));
+        final Token tokenToCheck = new Token(requestTokenHeader.substring(6));
+
+        UserDetails userDetails = this.userDetailsService.loadUserByUsername(tokenUtil.getUsernameFromToken(tokenToCheck));
 
         if (tokenUtil.validateToken(tokenToCheck))  {
             UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(
