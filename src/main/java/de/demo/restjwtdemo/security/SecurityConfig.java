@@ -52,8 +52,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity httpSecurity) throws Exception {
 
         // for login path authorization should be off, all other requests should require auth
-        httpSecurity.authorizeRequests().antMatchers("/login").permitAll()
-                .antMatchers("user/{id}").hasRole("ADMIN")
+        httpSecurity
+                .csrf().disable()
+                .authorizeRequests().antMatchers("/login").permitAll()
+                .anyRequest().authenticated()
                 .and().exceptionHandling().authenticationEntryPoint(authEntryPoint)
                 .and().sessionManagement()
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS);

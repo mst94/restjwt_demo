@@ -16,14 +16,14 @@ class TokenUtilJwtImpl implements TokenUtilIF {
     @Value("${jwt.secret}")
     private String secret;
 
-    @Value("${jwt.validityduration}")
+    @Value("${jwt.validityduration.minutes}")
     private long jwtValidityDuration;
 
 
     @Override
     public Token generateToken(final UserDetails userDetails) {
         long currentTimeMs = System.currentTimeMillis();
-        long expDate = currentTimeMs + jwtValidityDuration;
+        long expDate = currentTimeMs + jwtValidityDuration * 1000 * 60;
 
         Map<String,Object> claims = new HashMap<>();
         claims.put("roles", "testrole");
@@ -50,8 +50,10 @@ class TokenUtilJwtImpl implements TokenUtilIF {
                     .parseClaimsJws(token.getToken());
             return true;
         } catch (JwtException e)  {
+            e.printStackTrace();
             return false;
         } catch (Exception e)  {
+            e.printStackTrace();
             return false;
         }
     }

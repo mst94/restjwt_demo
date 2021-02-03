@@ -20,7 +20,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             if (user != null)
             return user;
              */
-            return new User("javainuse", "$2a$10$slYQmyNdGzTn7ZLBXBChFOC9f6kFjAqPhccnP6DxlWXx2lPk1C3G6",
+            return new User("test", "$2a$10$slYQmyNdGzTn7ZLBXBChFOC9f6kFjAqPhccnP6DxlWXx2lPk1C3G6",
                     new ArrayList<>());
         } else {
             throw new UsernameNotFoundException("User " +username + " not found!");
