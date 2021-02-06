@@ -42,6 +42,7 @@ public class AuthController {
     public ResponseEntity<?> login(@RequestBody final LoginCredentials userCredentials, final HttpServletResponse response)
             throws Exception {
         try {
+            System.out.println("hello user:" +userCredentials.getUsername());
             authManager.authenticate(new UsernamePasswordAuthenticationToken(userCredentials.getUsername(),
                     userCredentials.getPassword()));
         } catch (DisabledException e) {
@@ -50,6 +51,7 @@ public class AuthController {
             throw new Exception("INVALID_CREDENTIALS", e);
         }
         // generate and return new token
+        // it is intended that user who already has a token is getting also a new one
         final UserDetails userDetails = userDetailsService.loadUserByUsername(userCredentials.getUsername());
         return ResponseEntity.ok(tokenUtil.generateToken(userDetails));
     }

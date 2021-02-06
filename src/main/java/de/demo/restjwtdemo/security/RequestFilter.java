@@ -1,7 +1,10 @@
 package de.demo.restjwtdemo.security;
 
 import de.demo.restjwtdemo.model.Token;
+import io.jsonwebtoken.JwtException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -34,7 +37,6 @@ public class RequestFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse,
                                     FilterChain filterChain) throws ServletException, IOException {
-        System.out.println("do filter");
         // basic auth header should look like this: Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2F......
         final String requestTokenHeader = httpServletRequest.getHeader("Authorization");
 
@@ -44,17 +46,20 @@ public class RequestFilter extends OncePerRequestFilter {
         if (requestTokenHeader != null && requestTokenHeader.startsWith("Basic"))
             tokenToCheck = new Token(requestTokenHeader.substring(6));
 
-        System.out.println(tokenToCheck.getToken());
-
-
         if (tokenToCheck != null && tokenUtil.validateToken(tokenToCheck)) {
-            UserDetails userDetails = this.userDetailsService.loadUserByUsername(tokenUtil.getUsernameFromToken(tokenToCheck));
-            UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(
-                    userDetails, "", userDetails.getAuthorities());
-            usernamePasswordAuthenticationToken
-                    .setDetails(new WebAuthenticationDetailsSource().buildDetails(httpServletRequest));
+            try {
+                UserDetails userDetails = this.userDetailsService.loadUserByUsername(tokenUtil.getUsernameFromToken(tokenToCheck));
 
-            SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
+                UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(
+                        userDetails, "", userDetails.getAuthorities());
+                usernamePasswordAuthenticationToken
+                        .setDetails(new WebAuthenticationDetailsSource().buildDetails(httpServletRequest));
+
+                SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
+            } catch (JwtException e) {
+                System.out.println("Username could not be proved with token.");
+                httpServletResponse.setStatus(HttpStatus.UNAUTHORIZED.value());
+            }
         }
         filterChain.doFilter(httpServletRequest, httpServletResponse);
     }
