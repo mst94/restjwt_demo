@@ -1,11 +1,19 @@
 package de.demo.restjwtdemo.controller;
 
+import de.demo.restjwtdemo.model.User;
+import de.demo.restjwtdemo.persistence.JdbcService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import javax.servlet.http.HttpServletResponse;
 
 @RestController
 @RequestMapping(path = "/user")
 public class UserController {
+    @Autowired
+    private JdbcService jdbc;
 
     @PostMapping("/")
     @ResponseStatus(HttpStatus.CREATED)
@@ -22,10 +30,15 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    @ResponseStatus(HttpStatus.OK)
-    public String readUserById(@PathVariable String id) {
-        // ToDo: Implement method
-        return "test";
+    public User readUserById(@PathVariable int id, HttpServletResponse response)  {
+        User user;
+        try {
+            user = jdbc.readUserById(id);
+            response.setStatus(HttpStatus.OK.value());
+            return user;
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found", e);
+        }
     }
 
     @DeleteMapping("/{id}")
