@@ -31,9 +31,6 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Autowired
     private UserDetailsServiceImpl userDetailsService;
 
-    @Autowired
-    private DataSource dataSource;
-
     @Bean
     @Override
     public AuthenticationManager authenticationManagerBean() throws Exception {

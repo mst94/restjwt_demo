@@ -1,7 +1,7 @@
 package de.demo.restjwtdemo.controller;
 
-import de.demo.restjwtdemo.model.User;
-import de.demo.restjwtdemo.persistence.JdbcService;
+import de.demo.restjwtdemo.model.UserModel;
+import de.demo.restjwtdemo.persistence.PersistenceServiceIF;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -13,13 +13,17 @@ import javax.servlet.http.HttpServletResponse;
 @RequestMapping(path = "/user")
 public class UserController {
     @Autowired
-    private JdbcService jdbc;
+    private PersistenceServiceIF persistenceService;
 
     @PostMapping("/")
-    @ResponseStatus(HttpStatus.CREATED)
-    public String createUser() {
-        // ToDo: Implement method
-        return "user created";
+    public void createUser(@RequestBody UserModel user, HttpServletResponse response) {
+        try {
+            persistenceService.createUser(user);
+            response.setStatus(HttpStatus.CREATED.value());
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error appeared");
+        }
     }
 
     @PutMapping("/{id}")
@@ -30,21 +34,27 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public User readUserById(@PathVariable int id, HttpServletResponse response)  {
-        User user;
+    public UserModel readUserById(@PathVariable int id, HttpServletResponse response) {
+        UserModel user;
         try {
-            user = jdbc.readUserById(id);
+            user = persistenceService.getUserById(id);
             response.setStatus(HttpStatus.OK.value());
             return user;
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found", e);
+            //e.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         }
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(code = HttpStatus.NO_CONTENT)
-    public void deleteUserById(@PathVariable String id) {
-        // ToDo: Implement method
+    public void deleteUserById(@PathVariable int id) {
+        try  {
+            persistenceService.deleteUserById(id);
+        } catch (Exception e) {
+            //e.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Internal error");
+        }
     }
 
 }
