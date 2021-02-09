@@ -5,7 +5,7 @@ import java.io.Serializable;
 // contains credentials of user who makes an login attempt
 public class LoginCredentials implements Serializable {
     private String username;
-    private String password;    // toDo: hash PW
+    private String password;
 
 
     //need default constructor for JSON Parsing

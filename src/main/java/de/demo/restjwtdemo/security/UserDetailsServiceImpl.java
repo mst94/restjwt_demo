@@ -1,12 +1,14 @@
 package de.demo.restjwtdemo.security;
 
 import de.demo.restjwtdemo.model.UserModel;
+import de.demo.restjwtdemo.model.UserRolesModel;
 import de.demo.restjwtdemo.persistence.PersistenceServiceSQLImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -21,8 +23,9 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 
         try {
+            // fetch user from database
             UserModel foundUser = jdbc.getUserByUsername(username);
-            return new User(foundUser.getLogin(), foundUser.getPassword(), new ArrayList<>());
+            return new User(foundUser.getLogin(), foundUser.getPassword(), jdbc.getRolesOfUserByUserId(foundUser.getId()));
         } catch (Exception e) {
             throw new UsernameNotFoundException("User " + username + " not found!");
         }

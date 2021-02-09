@@ -4,6 +4,9 @@ import de.demo.restjwtdemo.model.UserModel;
 import de.demo.restjwtdemo.persistence.PersistenceServiceIF;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -14,6 +17,7 @@ import javax.servlet.http.HttpServletResponse;
 public class UserController {
     @Autowired
     private PersistenceServiceIF persistenceService;
+
 
     @PostMapping("/")
     public void createUser(@RequestBody UserModel user, HttpServletResponse response) {
@@ -27,10 +31,14 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    @ResponseStatus(HttpStatus.OK)
-    public String updateUserById(@PathVariable String id) {
-        // ToDo: Implement method
-        return "user updated";
+    public void updateUserById(@PathVariable int id, @RequestBody UserModel user, HttpServletResponse response) {
+        try {
+            persistenceService.updateUserById(id, user);
+            response.setStatus(HttpStatus.OK.value());
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error appeared");
+        }
     }
 
     @GetMapping("/{id}")
@@ -49,10 +57,19 @@ public class UserController {
     @DeleteMapping("/{id}")
     @ResponseStatus(code = HttpStatus.NO_CONTENT)
     public void deleteUserById(@PathVariable int id) {
-        try  {
+        try {
+            // prevent user for deleting herself
+            User loggedInUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            UserModel user = persistenceService.getUserByUsername(loggedInUser.getUsername());
+            if (user.getId() == id) {
+                throw new BadCredentialsException("Error: you cannot delete" +
+                        "yourself!");
+            }
+            // delete user from db
             persistenceService.deleteUserById(id);
+        } catch (BadCredentialsException b) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "You cannot delete yourself!");
         } catch (Exception e) {
-            //e.printStackTrace();
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Internal error");
         }
     }

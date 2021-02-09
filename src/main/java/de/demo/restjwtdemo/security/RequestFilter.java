@@ -4,9 +4,9 @@ import de.demo.restjwtdemo.model.Token;
 import io.jsonwebtoken.JwtException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
@@ -24,9 +24,6 @@ import java.io.IOException;
 public class RequestFilter extends OncePerRequestFilter {
     @Autowired
     private TokenUtilIF tokenUtil;
-
-    @Autowired
-    private UserDetailsServiceImpl userDetailsService;
 
     @PostConstruct
     public void init() {
@@ -48,7 +45,10 @@ public class RequestFilter extends OncePerRequestFilter {
 
         if (tokenToCheck != null && tokenUtil.validateToken(tokenToCheck)) {
             try {
-                UserDetails userDetails = this.userDetailsService.loadUserByUsername(tokenUtil.getUsernameFromToken(tokenToCheck));
+                // we have a token which contains the information so we dont need to ask the database for user details
+                // instead extract them from token
+                UserDetails userDetails = new User(tokenUtil.getUsernameFromToken(tokenToCheck), "",
+                        tokenUtil.getRolesFromToken(tokenToCheck));
 
                 UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(
                         userDetails, "", userDetails.getAuthorities());
@@ -57,7 +57,7 @@ public class RequestFilter extends OncePerRequestFilter {
 
                 SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
             } catch (JwtException e) {
-                System.out.println("Username could not be proved with token.");
+                System.out.println("Username could not be proofed with token.");
                 httpServletResponse.setStatus(HttpStatus.UNAUTHORIZED.value());
             }
         }

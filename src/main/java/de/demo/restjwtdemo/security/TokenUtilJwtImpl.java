@@ -1,15 +1,17 @@
 package de.demo.restjwtdemo.security;
 
 import de.demo.restjwtdemo.model.Token;
+import de.demo.restjwtdemo.model.UserRolesEnum;
 import io.jsonwebtoken.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Component
 class TokenUtilJwtImpl implements TokenUtilIF {
@@ -27,9 +29,13 @@ class TokenUtilJwtImpl implements TokenUtilIF {
         long expDate = currentTimeMs + jwtValidityDuration * 1000 * 60;
 
         Map<String, Object> claims = new HashMap<>();
-        claims.put("roles", "testrole");
         claims.put("username", userDetails.getUsername());
-        System.out.println("set username: " +userDetails.getUsername());
+        Collection<? extends GrantedAuthority> roles = userDetails.getAuthorities();
+        Iterator<? extends GrantedAuthority> iter = roles.iterator();
+        while (iter.hasNext()) {
+            GrantedAuthority auth = iter.next();
+            claims.put(auth.getAuthority(), true);
+        }
 
         String jwt = Jwts.builder()
                 .setSubject(userDetails.getUsername())
@@ -43,9 +49,9 @@ class TokenUtilJwtImpl implements TokenUtilIF {
         return new Token(jwt);
     }
 
+    // validate token via jwt library, if any exception is thrown validation token is not validated
     @Override
     public boolean validateToken(final Token token) {
-
         try {
             Jwts.parser()
                     .setSigningKey(secret)
@@ -64,15 +70,31 @@ class TokenUtilJwtImpl implements TokenUtilIF {
         }
     }
 
-    private Claims getAllClaimsFromToken(String token) {
-        return Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
+    @Override
+    public Claims getClaimsFromToken(final Token token) {
+        return Jwts.parser().setSigningKey(secret).parseClaimsJws(token.getToken()).getBody();
     }
 
-    public String getUsernameFromToken(final Token token)   {
+    // extract claims from token and compare it to roles enum, if equal, insert only true boolean values into auth list
+    @Override
+    public List<GrantedAuthority> getRolesFromToken(Token token) {
+        List<GrantedAuthority> list = new ArrayList<>();
+        Claims claims = getClaimsFromToken(token);
+        for (UserRolesEnum c : UserRolesEnum.values()) {
+            if (claims.containsKey(c.toString())) {
+                if (claims.get(c.toString(), Boolean.class)) {
+                    list.add(new SimpleGrantedAuthority(c.toString()));
+                }
+            }
+        }
+        return list;
+    }
+
+    public String getUsernameFromToken(final Token token) {
         try {
-            Claims claims = getAllClaimsFromToken(token.getToken());
-            return (String) claims.get("username");
-        } catch (NullPointerException | ClassCastException e)  {
+            Claims claims = getClaimsFromToken(token);
+            return claims.get("username", String.class);
+        } catch (NullPointerException | ClassCastException e) {
             throw new JwtException("Username could not be retrieved from token");
         }
     }
