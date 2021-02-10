@@ -3,6 +3,7 @@ package de.demo.restjwtdemo.persistence;
 import de.demo.restjwtdemo.model.UserModel;
 import de.demo.restjwtdemo.model.UserRolesEnum;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,12 +20,16 @@ public class PersistenceServiceSQLImpl implements PersistenceServiceIF {
     private Statement statement = null;
     private PreparedStatement preparedStatement = null;
     private ResultSet resultSet = null;
-
-    @Autowired
     private DataSource dataSource;
+    private PasswordEncoder passwordEncoder;
 
     @Autowired
-    private PasswordEncoder passwordEncoder;
+    public void setDataSource(final DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
+    @Autowired
+    public void setPasswordEncoder(final PasswordEncoder passwordEncoder) { this.passwordEncoder = passwordEncoder; }
 
     @Override
     public boolean createUser(final UserModel user) throws Exception {
@@ -35,7 +40,7 @@ public class PersistenceServiceSQLImpl implements PersistenceServiceIF {
             // create entry in user table
             preparedStatement = connect.prepareStatement("INSERT INTO user (id, login, password, fname, " +
                     "lname, email) VALUES (default, ?, ?, ?, ? , ?)");
-            preparedStatement = prepareUser(preparedStatement, user);
+            prepareUser(preparedStatement, user);
             preparedStatement.executeUpdate();
 
             // create roles entry
@@ -70,7 +75,7 @@ public class PersistenceServiceSQLImpl implements PersistenceServiceIF {
             insertStatement.append(");");
             preparedStatement = connect.prepareStatement(insertStatement.toString());
             preparedStatement.setInt(1, createdUserId);
-            preparedStatement = prepareUserRoles(preparedStatement, roles, 2);
+            prepareUserRoles(preparedStatement, roles, 2);
             preparedStatement.executeUpdate();
             return true;
         } catch (Exception e) {
@@ -153,7 +158,7 @@ public class PersistenceServiceSQLImpl implements PersistenceServiceIF {
             // id column is immutable
             preparedStatement = connect.prepareStatement("UPDATE user SET login = ?, password = ?, " +
                     "fname = ?, lname = ?, email = ? WHERE id = ?");
-            preparedStatement = prepareUser(preparedStatement, toUpdate);
+            prepareUser(preparedStatement, toUpdate);
             preparedStatement.setInt(6, id);
             preparedStatement.executeUpdate();
 
@@ -169,7 +174,7 @@ public class PersistenceServiceSQLImpl implements PersistenceServiceIF {
             }
             updateStatement.append(" WHERE user_id = ? ;");
             preparedStatement = connect.prepareStatement(updateStatement.toString());
-            preparedStatement = prepareUserRoles(preparedStatement, toUpdate.getRoles(), 1);
+            prepareUserRoles(preparedStatement, toUpdate.getRoles(), 1);
             preparedStatement.setInt(11, id);
             preparedStatement.executeUpdate();
             return true;
@@ -211,18 +216,16 @@ public class PersistenceServiceSQLImpl implements PersistenceServiceIF {
         }
     }
 
-    private PreparedStatement prepareUser(PreparedStatement preparedUserStatement, UserModel user) throws Exception {
-        // toDo: deal with trim()
+    private void prepareUser(PreparedStatement preparedUserStatement, UserModel user) throws Exception {
         preparedUserStatement.setString(1, user.getLogin());
         preparedUserStatement.setString(2, passwordEncoder.encode(user.getPassword()));
         preparedUserStatement.setString(3, user.getFname());
         preparedUserStatement.setString(4, user.getLname());
         preparedUserStatement.setString(5, user.getEmail());
-        return preparedUserStatement;
     }
 
     // translate the list of roles enums into the prepared statement for sql
-    private PreparedStatement prepareUserRoles(PreparedStatement preparedRolesStatement, List<UserRolesEnum> roles,
+    private void prepareUserRoles(PreparedStatement preparedRolesStatement, List<UserRolesEnum> roles,
                                                int parameterStartIndex) throws SQLException {
         // caution: sql parameter index starts with 1, list index with 0!
         // sql parameter index 1 already used for setting user id
@@ -234,7 +237,6 @@ public class PersistenceServiceSQLImpl implements PersistenceServiceIF {
                 preparedRolesStatement.setInt(index, 0);
             index++;
         }
-        return preparedRolesStatement;
     }
 
     public List<GrantedAuthority> getRolesOfUserByUserId(final int userId) throws Exception {

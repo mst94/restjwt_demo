@@ -22,8 +22,12 @@ import java.io.IOException;
 
 @Component
 public class RequestFilter extends OncePerRequestFilter {
-    @Autowired
     private TokenUtilIF tokenUtil;
+
+    @Autowired
+    public void setTokenUtil(final TokenUtilIF tokenUtil) {
+        this.tokenUtil = tokenUtil;
+    }
 
     @PostConstruct
     public void init() {

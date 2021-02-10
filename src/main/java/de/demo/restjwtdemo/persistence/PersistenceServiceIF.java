@@ -2,7 +2,6 @@ package de.demo.restjwtdemo.persistence;
 
 import de.demo.restjwtdemo.model.UserModel;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 
