@@ -4,10 +4,8 @@ import de.demo.restjwtdemo.model.Token;
 import de.demo.restjwtdemo.model.UserRolesEnum;
 import io.jsonwebtoken.*;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
@@ -31,9 +29,7 @@ class TokenUtilJwtImpl implements TokenUtilIF {
         Map<String, Object> claims = new HashMap<>();
         claims.put("username", userDetails.getUsername());
         Collection<? extends GrantedAuthority> roles = userDetails.getAuthorities();
-        Iterator<? extends GrantedAuthority> iter = roles.iterator();
-        while (iter.hasNext()) {
-            GrantedAuthority auth = iter.next();
+        for (GrantedAuthority auth : roles) {
             claims.put(auth.getAuthority(), true);
         }
 
@@ -98,5 +94,4 @@ class TokenUtilJwtImpl implements TokenUtilIF {
             throw new JwtException("Username could not be retrieved from token");
         }
     }
-
 }

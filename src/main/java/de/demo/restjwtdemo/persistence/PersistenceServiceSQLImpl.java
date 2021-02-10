@@ -1,11 +1,8 @@
 package de.demo.restjwtdemo.persistence;
 
-import de.demo.restjwtdemo.model.SQLRoles;
 import de.demo.restjwtdemo.model.UserModel;
 import de.demo.restjwtdemo.model.UserRolesEnum;
-import de.demo.restjwtdemo.model.UserRolesModel;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -14,7 +11,6 @@ import org.springframework.stereotype.Service;
 import javax.sql.DataSource;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 @Service
@@ -35,8 +31,6 @@ public class PersistenceServiceSQLImpl implements PersistenceServiceIF {
         try {
             connect = dataSource.getConnection();
             statement = connect.createStatement();
-            // toDo: Validate input (size etc.) like boolean valid = string.matches("[A-Za-z0-9]{5,}");
-            // doing validation in front AND backend offers more security
 
             // create entry in user table
             preparedStatement = connect.prepareStatement("INSERT INTO user (id, login, password, fname, " +
@@ -44,25 +38,39 @@ public class PersistenceServiceSQLImpl implements PersistenceServiceIF {
             preparedStatement = prepareUser(preparedStatement, user);
             preparedStatement.executeUpdate();
 
-            UserRolesModel roles = user.getRoles();
-            // create roles object if none inserted
-            if (roles == null)
-                roles = new UserRolesModel();
+            // create roles entry
+            List<UserRolesEnum> roles = user.getRoles();
+            // create empty roles list if none stated
+            if (roles.isEmpty())
+                roles = new ArrayList<>();
 
             statement = connect.createStatement();
             preparedStatement = connect.prepareStatement("SELECT id FROM user WHERE login = ? ;");
             preparedStatement.setString(1, user.getLogin().trim());
             resultSet = preparedStatement.executeQuery();
             resultSet.next();
+            // get created user id due to auto increment
             int createdUserId = resultSet.getInt("id");
 
             // create entry in role table
             statement = connect.createStatement();
-            preparedStatement = connect.prepareStatement("INSERT INTO role (id, user_id, role_admin, " +
-                    "role_develop, role_cctld, role_gtld, role_billing, role_registry," +
-                    "role_purchase_read, role_purchase_write, role_sale_write, role_sql) VALUES (" +
-                    "default, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            preparedStatement = prepareUserRoles(preparedStatement, roles, createdUserId);
+            StringBuilder insertStatement = new StringBuilder("INSERT INTO role (id, user_id, ");
+            UserRolesEnum[] possibleRoles = UserRolesEnum.values();
+            for (int i = 0; i < possibleRoles.length; i++) {
+                insertStatement.append(possibleRoles[i].toString().toLowerCase());
+                if (i != possibleRoles.length - 1)
+                    insertStatement.append(",");
+            }
+            insertStatement.append(") VALUES (default, ?, ");
+            for (int z = 0; z < possibleRoles.length; z++) {
+                insertStatement.append("?");
+                if (z != possibleRoles.length - 1)
+                    insertStatement.append(",");
+            }
+            insertStatement.append(");");
+            preparedStatement = connect.prepareStatement(insertStatement.toString());
+            preparedStatement.setInt(1, createdUserId);
+            preparedStatement = prepareUserRoles(preparedStatement, roles, 2);
             preparedStatement.executeUpdate();
             return true;
         } catch (Exception e) {
@@ -78,8 +86,7 @@ public class PersistenceServiceSQLImpl implements PersistenceServiceIF {
             connect = dataSource.getConnection();
             statement = connect.createStatement();
             preparedStatement = connect.prepareStatement("SELECT user.id, user.login, user.password, user.fname, " +
-                    "user.lname, user.email, role.role_admin FROM user " +
-                    "LEFT JOIN role ON user.id = role.user_id where user.id= ? ; ");
+                    "user.lname, user.email FROM user WHERE user.id= ? ; ");
             preparedStatement.setInt(1, id);
             resultSet = preparedStatement.executeQuery();
 
@@ -95,12 +102,16 @@ public class PersistenceServiceSQLImpl implements PersistenceServiceIF {
             resultUser.setEmail(resultSet.getString("user.email"));
 
             // be aware of that if no role entry for this user id exists, all roles are set to false!
-            UserRolesModel rights = new UserRolesModel();
-            rights.setRoleAdmin(mapIntToBool(resultSet.getInt("role.role_admin")));
-            resultUser.setRoles(rights);
+            // check which role enums are inside list of roles and translate them to new simple granted objects for auth list
+            List<GrantedAuthority> roles = getRolesOfUserByUserId(id);
+            List<UserRolesEnum> rolesEnum = new ArrayList<>();
+            for (UserRolesEnum c : UserRolesEnum.values()) {
+                if (roles.contains(new SimpleGrantedAuthority(c.toString()))) {
+                    rolesEnum.add(c);
+                }
+            }
+            resultUser.setRoles(rolesEnum);
             return resultUser;
-        } catch (Exception e) {
-            throw e;
         } finally {
             close();
         }
@@ -111,7 +122,8 @@ public class PersistenceServiceSQLImpl implements PersistenceServiceIF {
         try {
             connect = dataSource.getConnection();
             statement = connect.createStatement();
-            preparedStatement = connect.prepareStatement("SELECT id, login, password FROM user WHERE login = ? ; ");
+            preparedStatement = connect.prepareStatement("SELECT id, login, password, fname, lname, email FROM user" +
+                    " WHERE login = ? ; ");
             preparedStatement.setString(1, username);
             resultSet = preparedStatement.executeQuery();
 
@@ -122,10 +134,10 @@ public class PersistenceServiceSQLImpl implements PersistenceServiceIF {
             resultUser.setId(resultSet.getInt("id"));
             resultUser.setLogin(resultSet.getString("login"));
             resultUser.setPassword(resultSet.getString("password"));
-
+            resultUser.setFname(resultSet.getString("fname"));
+            resultUser.setLname(resultSet.getString("lname"));
+            resultUser.setEmail(resultSet.getString("email"));
             return resultUser;
-        } catch (Exception e) {
-            throw e;
         } finally {
             close();
         }
@@ -147,16 +159,20 @@ public class PersistenceServiceSQLImpl implements PersistenceServiceIF {
 
             // create roles update
             statement = connect.createStatement();
-            preparedStatement = connect.prepareStatement("UPDATE role SET user_id = ?, role_admin = ?, " +
-                    "role_develop = ?, role_cctld = ?, role_gtld = ?, role_billing = ?, role_registry = ?," +
-                    "role_purchase_read = ?, role_purchase_write = ?, role_sale_write = ?, role_sql = ? WHERE " +
-                    "user_id = ?");
-            preparedStatement = prepareUserRoles(preparedStatement, toUpdate.getRoles(), id);
-            preparedStatement.setInt(12, id);
+            StringBuilder updateStatement = new StringBuilder("UPDATE role SET ");
+            UserRolesEnum[] possibleRoles = UserRolesEnum.values();
+            for (int i = 0; i < possibleRoles.length; i++) {
+                updateStatement.append(possibleRoles[i].toString().toLowerCase());
+                updateStatement.append(" = ?");
+                if (i != possibleRoles.length - 1)
+                    updateStatement.append(",");
+            }
+            updateStatement.append(" WHERE user_id = ? ;");
+            preparedStatement = connect.prepareStatement(updateStatement.toString());
+            preparedStatement = prepareUserRoles(preparedStatement, toUpdate.getRoles(), 1);
+            preparedStatement.setInt(11, id);
             preparedStatement.executeUpdate();
             return true;
-        } catch (Exception e) {
-            throw e;
         } finally {
             close();
         }
@@ -170,8 +186,6 @@ public class PersistenceServiceSQLImpl implements PersistenceServiceIF {
             preparedStatement = connect.prepareStatement("DElETE FROM user WHERE id = ? ; ");
             preparedStatement.setInt(1, id);
             preparedStatement.executeUpdate();
-        } catch (Exception e) {
-            throw e;
         } finally {
             close();
         }
@@ -197,46 +211,33 @@ public class PersistenceServiceSQLImpl implements PersistenceServiceIF {
         }
     }
 
-    private boolean mapIntToBool(final int val) {
-        if (val == 1)
-            return true;
-        return false;
-    }
-
-    private int mapBoolToInt(final boolean value) {
-        if (value == true)
-            return 1;
-        else
-            return 0;
-    }
-
-    private PreparedStatement prepareUser(PreparedStatement preparedUserStatement, UserModel user) throws SQLException {
+    private PreparedStatement prepareUser(PreparedStatement preparedUserStatement, UserModel user) throws Exception {
         // toDo: deal with trim()
         preparedUserStatement.setString(1, user.getLogin());
-        preparedUserStatement.setString(2, passwordEncoder.encode(user.getPassword().trim()));
+        preparedUserStatement.setString(2, passwordEncoder.encode(user.getPassword()));
         preparedUserStatement.setString(3, user.getFname());
         preparedUserStatement.setString(4, user.getLname());
         preparedUserStatement.setString(5, user.getEmail());
         return preparedUserStatement;
     }
 
-    private PreparedStatement prepareUserRoles(PreparedStatement preparedRolesStatement, UserRolesModel roles,
-                                               int userId) throws SQLException {
-        preparedRolesStatement.setInt(1, userId);
-        preparedRolesStatement.setInt(2, mapBoolToInt(roles.isRoleAdmin()));
-        preparedRolesStatement.setInt(3, mapBoolToInt(roles.isRoleDevelop()));
-        preparedRolesStatement.setInt(4, mapBoolToInt(roles.isRoleCCtl()));
-        preparedRolesStatement.setInt(5, mapBoolToInt(roles.isRoleGtld()));
-        preparedRolesStatement.setInt(6, mapBoolToInt(roles.isRoleBilling()));
-        preparedRolesStatement.setInt(7, mapBoolToInt(roles.isRoleRegistry()));
-        preparedRolesStatement.setInt(8, mapBoolToInt(roles.isRolePurchaseRead()));
-        preparedRolesStatement.setInt(9, mapBoolToInt(roles.isRolePurchaseWrite()));
-        preparedRolesStatement.setInt(10, mapBoolToInt(roles.isRoleSaleWrite()));
-        preparedRolesStatement.setInt(11, mapBoolToInt(roles.isRoleSql()));
+    // translate the list of roles enums into the prepared statement for sql
+    private PreparedStatement prepareUserRoles(PreparedStatement preparedRolesStatement, List<UserRolesEnum> roles,
+                                               int parameterStartIndex) throws SQLException {
+        // caution: sql parameter index starts with 1, list index with 0!
+        // sql parameter index 1 already used for setting user id
+        int index = parameterStartIndex;
+        for (UserRolesEnum c : UserRolesEnum.values()) {
+            if (roles.contains(c))
+                preparedRolesStatement.setInt(index, 1);
+            else
+                preparedRolesStatement.setInt(index, 0);
+            index++;
+        }
         return preparedRolesStatement;
     }
 
-    public List<GrantedAuthority> getRolesOfUserByUserId(final int userId) throws SQLException {
+    public List<GrantedAuthority> getRolesOfUserByUserId(final int userId) throws Exception {
         List<GrantedAuthority> list = new ArrayList<>();
         try {
             connect = dataSource.getConnection();
@@ -247,19 +248,17 @@ public class PersistenceServiceSQLImpl implements PersistenceServiceIF {
             resultSet.next();
 
             // compare database columns with roles enum and create authority if field value is 1
-            for (UserRolesEnum c : UserRolesEnum.values())  {
-                try  {
-                   int role = resultSet.getInt(c.toString().toLowerCase());
-                    if (role == 1)  {
+            for (UserRolesEnum c : UserRolesEnum.values()) {
+                try {
+                    int role = resultSet.getInt(c.toString().toLowerCase());
+                    if (role == 1) {
                         list.add(new SimpleGrantedAuthority(c.toString()));
-                        System.out.println("user has this role:" +c.toString());
+                        System.out.println("user has this role:" + c.toString());
                     }
-                } catch(SQLException e) {
-                    e.printStackTrace();
+                } catch (SQLException e) {
+                    throw new Exception("A database error has occurred!");
                 }
             }
-        } catch (Exception e) {
-            throw e;
         } finally {
             close();
         }

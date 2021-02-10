@@ -1,14 +1,17 @@
 package de.demo.restjwtdemo.model;
 
+import javax.validation.constraints.NotEmpty;
 import java.io.Serializable;
 
 // contains credentials of user who makes an login attempt
 public class LoginCredentials implements Serializable {
+    @NotEmpty
     private String username;
+    @NotEmpty
     private String password;
 
 
-    //need default constructor for JSON Parsing
+    // default constructor for JSON Parsing
     public LoginCredentials()
     { }
 

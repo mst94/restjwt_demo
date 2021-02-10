@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
 
 @RestController
 @RequestMapping(path = "/user")
@@ -20,9 +23,9 @@ public class UserController {
 
 
     @PostMapping("/")
-    public void createUser(@RequestBody UserModel user, HttpServletResponse response) {
+    public void createUser(@Valid @RequestBody UserModel user, HttpServletResponse response) {
         try {
-            persistenceService.createUser(user);
+            persistenceService.createUser(user.trimAll());
             response.setStatus(HttpStatus.CREATED.value());
         } catch (Exception e) {
             e.printStackTrace();
@@ -31,9 +34,9 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public void updateUserById(@PathVariable int id, @RequestBody UserModel user, HttpServletResponse response) {
+    public void updateUserById(@PathVariable int id, @Valid @RequestBody UserModel user, HttpServletResponse response) {
         try {
-            persistenceService.updateUserById(id, user);
+            persistenceService.updateUserById(id, user.trimAll());
             response.setStatus(HttpStatus.OK.value());
         } catch (Exception e) {
             e.printStackTrace();

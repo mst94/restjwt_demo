@@ -1,18 +1,38 @@
 package de.demo.restjwtdemo.model;
 
-import java.lang.reflect.Field;
-import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotEmpty;;
+import javax.validation.constraints.Size;
+import java.util.ArrayList;
+import java.util.List;
 
 public class UserModel {
-    public UserModel()  { }
 
+    public UserModel() {
+    }
+
+    @Min(1)
     private int id;
+    @NotEmpty
+    @Size(max = 50)
     private String login;
+    @NotEmpty
+    @Size(max = 20)
     private String password;
+    @NotEmpty
+    @Size(max = 50)
     private String fname;
+    @NotEmpty
+    @Size(max = 50)
     private String lname;
+    @NotEmpty
+    @Size(max = 100)
     private String email;
-    private UserRolesModel roles;
+
+    @Autowired(required = false)
+    private List<UserRolesEnum> roles = new ArrayList<>();
 
     public int getId() {
         return id;
@@ -62,11 +82,20 @@ public class UserModel {
         this.email = email;
     }
 
-    public UserRolesModel getRoles() {
+    public List<UserRolesEnum> getRoles() {
         return roles;
     }
 
-    public void setRoles(UserRolesModel roles) {
+    public void setRoles(List<UserRolesEnum> roles) {
         this.roles = roles;
+    }
+
+    public UserModel trimAll() {
+        this.setLogin(getLogin().trim());
+        this.setEmail(getEmail().trim());
+        this.setPassword(getPassword().trim());
+        this.setFname(getFname().trim());
+        this.setLname(getLname().trim());
+        return this;
     }
 }
