@@ -2,6 +2,7 @@ package de.demo.restjwtdemo.controller;
 
 import de.demo.restjwtdemo.model.UserModel;
 import de.demo.restjwtdemo.persistence.PersistenceServiceIF;
+import de.demo.restjwtdemo.persistence.PersistenceServiceJdbcTemplateImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -25,9 +26,12 @@ public class UserController {
         this.persistenceService = persistenceService;
     }
 
+    @Autowired
+    PersistenceServiceJdbcTemplateImpl ps;
+
 
     @PostMapping("/")
-    public void createUser(@Valid @RequestBody UserModel user, HttpServletResponse response) {
+    public void createUser(@Valid @RequestBody UserModel user, HttpServletResponse response)  {
         try {
             persistenceService.createUser(user.trimAll());
             response.setStatus(HttpStatus.CREATED.value());
@@ -54,6 +58,7 @@ public class UserController {
 
     @GetMapping("/{id}")
     public UserModel readUserById(@Min(1) @PathVariable int id, HttpServletResponse response) {
+        ps.getUserById(id);
         UserModel user;
         try {
             user = persistenceService.getUserById(id);

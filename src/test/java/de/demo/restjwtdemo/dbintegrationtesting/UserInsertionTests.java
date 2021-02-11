@@ -1,6 +1,5 @@
 package de.demo.restjwtdemo.dbintegrationtesting;
 
-import com.github.springtestdbunit.annotation.DatabaseSetup;
 import de.demo.restjwtdemo.controller.UserController;
 import de.demo.restjwtdemo.model.UserModel;
 import de.demo.restjwtdemo.persistence.PersistenceServiceIF;
@@ -12,15 +11,10 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.web.server.LocalServerPort;
-import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.test.context.event.annotation.*;
-import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.RequestBuilder;
@@ -30,6 +24,8 @@ import org.springframework.web.context.WebApplicationContext;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
+// insert user in database, get user via id and delete user again
+// caution: auto increment has to be reset manually!
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @AutoConfigureMockMvc
 public class UserInsertionTests {
@@ -57,15 +53,6 @@ public class UserInsertionTests {
     @Autowired
     private PersistenceServiceIF persistence;
 
-    private Authentication authentication;
-
-    public Authentication getAuthentication() {
-        return this.authentication;
-    }
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
     int tmpUserId;
 
     @BeforeEach
@@ -87,7 +74,7 @@ public class UserInsertionTests {
     }
 
     @Test
-    @WithMockUser(username = "test", password = "password", authorities = {"USER", "ADMIN"})
+    @WithMockUser(username = "test", password = "test", authorities = {"USER", "ADMIN"})
     public void shouldReturnInsertedUser() throws Exception {
         RequestBuilder requestBuilder = MockMvcRequestBuilders
                 .get("/user/" +tmpUserId);

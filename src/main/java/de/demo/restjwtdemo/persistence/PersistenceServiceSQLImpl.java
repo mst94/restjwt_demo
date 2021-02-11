@@ -3,6 +3,7 @@ package de.demo.restjwtdemo.persistence;
 import de.demo.restjwtdemo.model.UserModel;
 import de.demo.restjwtdemo.model.UserRolesEnum;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Primary;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
