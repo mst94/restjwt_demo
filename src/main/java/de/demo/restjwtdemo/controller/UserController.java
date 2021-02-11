@@ -12,14 +12,18 @@ import org.springframework.web.server.ResponseStatusException;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
+import javax.validation.constraints.Min;
+import java.util.NoSuchElementException;
 
 @RestController
 @RequestMapping(path = "/user")
 public class UserController {
-    @Autowired
     private PersistenceServiceIF persistenceService;
+
+    @Autowired
+    public void setPersistenceService(final PersistenceServiceIF persistenceService)  {
+        this.persistenceService = persistenceService;
+    }
 
 
     @PostMapping("/")
@@ -28,16 +32,20 @@ public class UserController {
             persistenceService.createUser(user.trimAll());
             response.setStatus(HttpStatus.CREATED.value());
         } catch (Exception e) {
-            e.printStackTrace();
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error appeared");
         }
     }
 
     @PutMapping("/{id}")
-    public void updateUserById(@PathVariable int id, @Valid @RequestBody UserModel user, HttpServletResponse response) {
+    public void updateUserById(@Min(1) @PathVariable int id, @Valid @RequestBody UserModel user, HttpServletResponse response) {
         try {
+            // check if user with stated id exists
+            persistenceService.getUserById(id);
+            // update user
             persistenceService.updateUserById(id, user.trimAll());
             response.setStatus(HttpStatus.OK.value());
+        } catch (NoSuchElementException b)  {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, b.getMessage());
         } catch (Exception e) {
             e.printStackTrace();
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error appeared");
@@ -45,21 +53,20 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public UserModel readUserById(@PathVariable int id, HttpServletResponse response) {
+    public UserModel readUserById(@Min(1) @PathVariable int id, HttpServletResponse response) {
         UserModel user;
         try {
             user = persistenceService.getUserById(id);
             response.setStatus(HttpStatus.OK.value());
             return user;
         } catch (Exception e) {
-            //e.printStackTrace();
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         }
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(code = HttpStatus.NO_CONTENT)
-    public void deleteUserById(@PathVariable int id) {
+    public void deleteUserById(@Min(1) @PathVariable int id) {
         try {
             // prevent user for deleting herself
             User loggedInUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -71,7 +78,7 @@ public class UserController {
             // delete user from db
             persistenceService.deleteUserById(id);
         } catch (BadCredentialsException b) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "You cannot delete yourself!");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, b.getMessage());
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Internal error");
         }

@@ -20,6 +20,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
+// common request filter that should be used for checking every request
 @Component
 public class RequestFilter extends OncePerRequestFilter {
     private TokenUtilIF tokenUtil;

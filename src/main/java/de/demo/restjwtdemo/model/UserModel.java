@@ -13,7 +13,6 @@ public class UserModel {
     public UserModel() {
     }
 
-    @Min(1)
     private int id;
     @NotEmpty
     @Size(max = 50)

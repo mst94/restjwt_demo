@@ -3,7 +3,6 @@ package de.demo.restjwtdemo.persistence;
 import de.demo.restjwtdemo.model.UserModel;
 import de.demo.restjwtdemo.model.UserRolesEnum;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -13,6 +12,7 @@ import javax.sql.DataSource;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @Service
 public class PersistenceServiceSQLImpl implements PersistenceServiceIF {
@@ -29,7 +29,9 @@ public class PersistenceServiceSQLImpl implements PersistenceServiceIF {
     }
 
     @Autowired
-    public void setPasswordEncoder(final PasswordEncoder passwordEncoder) { this.passwordEncoder = passwordEncoder; }
+    public void setPasswordEncoder(final PasswordEncoder passwordEncoder) {
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @Override
     public boolean createUser(final UserModel user) throws Exception {
@@ -96,15 +98,9 @@ public class PersistenceServiceSQLImpl implements PersistenceServiceIF {
             resultSet = preparedStatement.executeQuery();
 
             if (!resultSet.next())
-                throw new Exception("User not found!");
+                throw new NoSuchElementException("User not found!");
 
-            UserModel resultUser = new UserModel();
-            resultUser.setId(resultSet.getInt("user.id"));
-            resultUser.setLogin(resultSet.getString("user.login"));
-            resultUser.setPassword(resultSet.getString("user.password"));
-            resultUser.setFname(resultSet.getString("user.fname"));
-            resultUser.setLname(resultSet.getString("user.lname"));
-            resultUser.setEmail(resultSet.getString("user.email"));
+            UserModel resultUser = creaeUserModelFromResultSet(resultSet);
 
             // be aware of that if no role entry for this user id exists, all roles are set to false!
             // check which role enums are inside list of roles and translate them to new simple granted objects for auth list
@@ -133,16 +129,9 @@ public class PersistenceServiceSQLImpl implements PersistenceServiceIF {
             resultSet = preparedStatement.executeQuery();
 
             if (!resultSet.next())
-                throw new Exception("User not found!");
+                throw new NoSuchElementException("User not found!");
 
-            UserModel resultUser = new UserModel();
-            resultUser.setId(resultSet.getInt("id"));
-            resultUser.setLogin(resultSet.getString("login"));
-            resultUser.setPassword(resultSet.getString("password"));
-            resultUser.setFname(resultSet.getString("fname"));
-            resultUser.setLname(resultSet.getString("lname"));
-            resultUser.setEmail(resultSet.getString("email"));
-            return resultUser;
+            return creaeUserModelFromResultSet(resultSet);
         } finally {
             close();
         }
@@ -216,6 +205,19 @@ public class PersistenceServiceSQLImpl implements PersistenceServiceIF {
         }
     }
 
+    // parse result set and fill corresponding user model fields
+    private UserModel creaeUserModelFromResultSet(ResultSet result) throws SQLException {
+        UserModel resultUser = new UserModel();
+        resultUser.setId(resultSet.getInt("id"));
+        resultUser.setLogin(resultSet.getString("login"));
+        resultUser.setPassword(resultSet.getString("password"));
+        resultUser.setFname(resultSet.getString("fname"));
+        resultUser.setLname(resultSet.getString("lname"));
+        resultUser.setEmail(resultSet.getString("email"));
+        return resultUser;
+    }
+
+    // fill prepared statement with user data
     private void prepareUser(PreparedStatement preparedUserStatement, UserModel user) throws Exception {
         preparedUserStatement.setString(1, user.getLogin());
         preparedUserStatement.setString(2, passwordEncoder.encode(user.getPassword()));
@@ -226,7 +228,7 @@ public class PersistenceServiceSQLImpl implements PersistenceServiceIF {
 
     // translate the list of roles enums into the prepared statement for sql
     private void prepareUserRoles(PreparedStatement preparedRolesStatement, List<UserRolesEnum> roles,
-                                               int parameterStartIndex) throws SQLException {
+                                  int parameterStartIndex) throws SQLException {
         // caution: sql parameter index starts with 1, list index with 0!
         // sql parameter index 1 already used for setting user id
         int index = parameterStartIndex;
@@ -239,6 +241,7 @@ public class PersistenceServiceSQLImpl implements PersistenceServiceIF {
         }
     }
 
+    // get a list of simple granted authorities roles
     public List<GrantedAuthority> getRolesOfUserByUserId(final int userId) throws Exception {
         List<GrantedAuthority> list = new ArrayList<>();
         try {

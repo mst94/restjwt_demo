@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 
 @Component
-class TokenUtilJwtImpl implements TokenUtilIF {
+public class TokenUtilJwtImpl implements TokenUtilIF {
 
     @Value("${jwt.secret}")
     private String secret;
