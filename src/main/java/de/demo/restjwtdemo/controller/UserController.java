@@ -2,7 +2,6 @@ package de.demo.restjwtdemo.controller;
 
 import de.demo.restjwtdemo.model.UserModel;
 import de.demo.restjwtdemo.persistence.PersistenceServiceIF;
-import de.demo.restjwtdemo.persistence.PersistenceServiceJdbcTemplateImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -22,16 +21,12 @@ public class UserController {
     private PersistenceServiceIF persistenceService;
 
     @Autowired
-    public void setPersistenceService(final PersistenceServiceIF persistenceService)  {
+    public void setPersistenceService(final PersistenceServiceIF persistenceService) {
         this.persistenceService = persistenceService;
     }
 
-    @Autowired
-    PersistenceServiceJdbcTemplateImpl ps;
-
-
     @PostMapping("/")
-    public void createUser(@Valid @RequestBody UserModel user, HttpServletResponse response)  {
+    public void createUser(@Valid @RequestBody UserModel user, HttpServletResponse response) {
         try {
             persistenceService.createUser(user.trimAll());
             response.setStatus(HttpStatus.CREATED.value());
@@ -48,7 +43,7 @@ public class UserController {
             // update user
             persistenceService.updateUserById(id, user.trimAll());
             response.setStatus(HttpStatus.OK.value());
-        } catch (NoSuchElementException b)  {
+        } catch (NoSuchElementException b) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, b.getMessage());
         } catch (Exception e) {
             e.printStackTrace();
@@ -58,10 +53,10 @@ public class UserController {
 
     @GetMapping("/{id}")
     public UserModel readUserById(@Min(1) @PathVariable int id, HttpServletResponse response) {
-        ps.getUserById(id);
         UserModel user;
         try {
             user = persistenceService.getUserById(id);
+            user.setPassword(null);
             response.setStatus(HttpStatus.OK.value());
             return user;
         } catch (Exception e) {

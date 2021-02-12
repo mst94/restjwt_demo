@@ -58,16 +58,13 @@ public class TokenUtilJwtImpl implements TokenUtilIF {
             return false;
         } catch (JwtException e) {
             System.out.println("Exception: Another JwtException during JWT parsing.");
-            e.printStackTrace();
             return false;
         } catch (Exception e) {
-            e.printStackTrace();
             return false;
         }
     }
 
-    @Override
-    public Claims getClaimsFromToken(final Token token) {
+    private Claims getClaimsFromToken(final Token token) {
         return Jwts.parser().setSigningKey(secret).parseClaimsJws(token.getToken()).getBody();
     }
 
