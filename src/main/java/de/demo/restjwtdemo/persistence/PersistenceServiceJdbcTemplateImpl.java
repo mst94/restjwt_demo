@@ -14,7 +14,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -40,7 +39,7 @@ public class PersistenceServiceJdbcTemplateImpl implements PersistenceServiceIF 
     }
 
     @Override
-    public boolean createUser(UserModel user) throws Exception {
+    public boolean createUser(UserModel user)  {
         // create parameters for insertion
         Map<String, Object> parametersUser = new HashMap<String, Object>();
         parametersUser.put("id", user.getId());

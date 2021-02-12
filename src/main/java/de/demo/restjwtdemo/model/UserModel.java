@@ -2,8 +2,7 @@ package de.demo.restjwtdemo.model;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotEmpty;;
+import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Size;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +22,6 @@ public class UserModel {
     @NotEmpty
     @Size(max = 50)
     private String fname;
-    @NotEmpty
     @Size(max = 50)
     private String lname;
     @NotEmpty

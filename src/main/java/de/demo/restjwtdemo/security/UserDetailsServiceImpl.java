@@ -20,10 +20,10 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     // fetch user details from data source using username
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(final String username) throws UsernameNotFoundException {
         try {
             // fetch user from database
-            UserModel foundUser = persistenceService.getUserByUsername(username);
+            UserModel foundUser = persistenceService.getUserByUsername(username.trim());
             return new User(foundUser.getLogin(), foundUser.getPassword(), persistenceService
                     .getRolesOfUserByUserId(foundUser.getId()));
         } catch (Exception e) {
